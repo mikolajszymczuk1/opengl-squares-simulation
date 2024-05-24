@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <thread>
+#include <mutex>
+
 #include "../Board/Board.hpp"
 #include "../Elevator/Elevator.hpp"
 #include "../Square/Square.hpp"
@@ -14,17 +17,20 @@ private:
 	GLint height;
 	GLFWwindow *window;
 
-	Elevator *elevators;
-	Square *squares;
+	std::mutex mtx;
 
-	Elevator e1, e2;
-	Square s1, s2;
+	Elevator *elevators[5];
+	Square *squares[5];
+	int elementsArraySize = 5;
+
+	bool stopThreads;
 
 public:
 	Simulation(GLint windowWidth, GLint windowHeight);
 	int init();
 	void simulationLoop();
 	void createElements();
+	void updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus);
 };
 
 #endif

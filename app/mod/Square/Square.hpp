@@ -12,6 +12,8 @@ private:
 	bool isElevating;
 
 public:
+	int rounds;
+
 	Square();
 	Square(GLfloat startX, GLfloat startY, GLfloat squareSize, GLfloat squareSpeed, GLfloat r, GLfloat g, GLfloat b);
 	void move();

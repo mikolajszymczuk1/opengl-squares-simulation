@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 #ifndef BASEOBJECT_HPP
 #define BASEOBJECT_HPP

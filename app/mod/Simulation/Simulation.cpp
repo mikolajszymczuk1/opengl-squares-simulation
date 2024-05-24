@@ -33,43 +33,39 @@ int Simulation::init() {
 }
 
 void Simulation::simulationLoop() {
+	stopThreads = false;
+
+	// Create threads to manage elements
+	std::thread allThreads[elementsArraySize];
+	for (int i = 0; i < elementsArraySize; i++) {
+		allThreads[i] = std::thread(&Simulation::updateSquareAndElevatorThread, this, std::ref(squares[i]), std::ref(elevators[i]), std::ref(stopThreads));
+	}
+
+	// Main drawing/events loop
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		Board::drawTrack();
 
-		/**
-		for (int i = 0; i < sizeof(squares) / sizeof(squares[0]); ++i) {
-			squares[i].move();
-			squares[i].draw();
+		mtx.lock();
+
+		for (int i = 0; i < elementsArraySize; i++) {
+			if (squares[i] != nullptr && elevators[i] != nullptr) {
+				squares[i]->draw();
+				elevators[i]->draw();
+			}
 		}
 
-		for (int i = 0; i < sizeof(elevators) / sizeof(elevators[0]); ++i) {
-			elevators[i].move();
-			elevators[i].draw();
-		}
-		*/
-
-		s1.move();
-		e1.move();
-		s2.move();
-		e2.move();
-
-		if (s1.getX() >= e1.getX() && s1.getY() <= e1.getY()) {
-			e1.run();
-		}
-
-		if (s2.getX() >= e2.getX() && s2.getY() <= e2.getY()) {
-			e2.run();
-		}
-
-		s1.draw();
-		e1.draw();
-		s2.draw();
-		e2.draw();
+		mtx.unlock();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+	}
+
+	// Stop all threads
+	stopThreads = true;
+	for (int i = 0; i < elementsArraySize; i++) {
+		allThreads[i].join();
 	}
 
 	glfwDestroyWindow(window);
@@ -77,12 +73,27 @@ void Simulation::simulationLoop() {
 }
 
 void Simulation::createElements() {
-	e1 = Elevator(0.5f, 0.5f, 0.1f, 0.01f, 0.02f, 1.0f, 1.0f, 1.0f);
-	s1 = Square(-0.5f, 0.5f, 0.1f, 0.008f, 1.0f, 0.0f, 0.0f);
+	for (int i = 0; i < elementsArraySize; i++) {
+		elevators[i] = new Elevator(0.5f, 0.5f, 0.1f, 0.001f, 0.002f, 1.0f, 1.0f, 1.0f);
+		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), 0.5f, 0.2f, 1.0f);
+	}
+}
 
-	e2 = Elevator(0.5f, 0.5f, 0.1f, 0.01f, 0.02f, 1.0f, 1.0f, 1.0f);
-	s2 = Square(-0.5f, 0.5f, 0.1f, 0.005f, 0.0f, 1.0f, 0.0f);
+void Simulation::updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus) {
+	while (true) {
+		if (stopThreadStatus || s->rounds == 2) {
+			delete s;
+			delete e;
+			return;
+		}
 
-	elevators = new Elevator[2] { e1, e2 };
-	squares = new Square[2] { s1, s2 };
+		s->move();
+		e->move();
+
+		if (s->getX() >= e->getX() && s->getY() <= e->getY()) {
+			e->run();
+		}
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
 }

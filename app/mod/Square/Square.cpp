@@ -3,11 +3,11 @@
 Square::Square() { }
 
 Square::Square(GLfloat startX, GLfloat startY, GLfloat squareSize, GLfloat squareSpeed, GLfloat r, GLfloat g, GLfloat b)
-	: BaseObject(startX, startY, squareSize, squareSpeed, r, g, b), corner(1), mainSpeed(squareSpeed), isElevating(false) { }
+	: BaseObject(startX, startY, squareSize, squareSpeed, r, g, b), corner(1), mainSpeed(squareSpeed), isElevating(false), rounds(0) { }
 
 void Square::move() {
 	if (isElevating) {
-		speed = 0.01f;
+		speed = 0.001f;
 	} else {
 		speed = mainSpeed;
 	}
@@ -41,6 +41,7 @@ void Square::move() {
 			if (y >= 0.5f) {
 				y = 0.5f;
 				corner = 1;
+				rounds++;
 			}
 			break;
 	}
