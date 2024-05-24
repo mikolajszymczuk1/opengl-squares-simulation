@@ -47,16 +47,12 @@ void Simulation::simulationLoop() {
 
 		Board::drawTrack();
 
-		mtx.lock();
-
 		for (int i = 0; i < elementsArraySize; i++) {
 			if (squares[i] != nullptr && elevators[i] != nullptr) {
 				squares[i]->draw();
 				elevators[i]->draw();
 			}
 		}
-
-		mtx.unlock();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -75,13 +71,13 @@ void Simulation::simulationLoop() {
 void Simulation::createElements() {
 	for (int i = 0; i < elementsArraySize; i++) {
 		elevators[i] = new Elevator(0.5f, 0.5f, 0.1f, 0.001f, 0.002f, 1.0f, 1.0f, 1.0f);
-		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), 0.5f, 0.2f, 1.0f);
+		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), 0.6f, 0.2f, 1.0f);
 	}
 }
 
 void Simulation::updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus) {
 	while (true) {
-		if (stopThreadStatus || s->rounds == 2) {
+		if (stopThreadStatus || s->rounds == maxRounds) {
 			delete s;
 			delete e;
 			return;

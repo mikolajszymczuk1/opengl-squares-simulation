@@ -1,5 +1,6 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+
 #include "../Base/BaseObject.hpp"
 
 #ifndef ELEVATOR_HPP
