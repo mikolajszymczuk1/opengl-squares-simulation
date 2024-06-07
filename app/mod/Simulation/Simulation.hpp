@@ -22,7 +22,7 @@ private:
 	Elevator *elevators[5];
 	Square *squares[5];
 	int elementsArraySize = 5;
-	int maxRounds = 2;
+	int maxRounds = 4;
 
 	bool stopThreads;
 

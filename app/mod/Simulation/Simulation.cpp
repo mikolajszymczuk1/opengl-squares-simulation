@@ -48,8 +48,11 @@ void Simulation::simulationLoop() {
 		Board::drawTrack();
 
 		for (int i = 0; i < elementsArraySize; i++) {
-			if (squares[i] != nullptr && elevators[i] != nullptr) {
+			if (squares[i] != nullptr) {
 				squares[i]->draw();
+			}
+
+			if (elevators[i] != nullptr) {
 				elevators[i]->draw();
 			}
 		}
@@ -77,6 +80,14 @@ void Simulation::createElements() {
 
 void Simulation::updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus) {
 	while (true) {
+		if (s == nullptr) {
+			return;
+		}
+
+		if (e == nullptr) {
+			return;
+		}
+
 		if (stopThreadStatus || s->rounds == maxRounds) {
 			delete s;
 			delete e;
