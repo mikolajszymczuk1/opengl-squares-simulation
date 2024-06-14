@@ -9,11 +9,14 @@
 class Elevator : public BaseObject {
 private:
 	bool isRunning;
+	bool isTop;
 	GLfloat speedUp;
 
 public:
 	Elevator();
 	Elevator(GLfloat startX, GLfloat startY, GLfloat elevatorSize, GLfloat elevatorSpeedDown, GLfloat elevatorSpeedUp, GLfloat r, GLfloat g, GLfloat b);
+	bool getTop();
+	bool getRunning();
 	void run();
 	void move();
 };

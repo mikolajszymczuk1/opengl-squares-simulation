@@ -3,6 +3,7 @@
 #include <GLFW/glfw3.h>
 #include <thread>
 #include <mutex>
+#include <random>
 
 #include "../Board/Board.hpp"
 #include "../Elevator/Elevator.hpp"
@@ -19,10 +20,11 @@ private:
 
 	std::mutex mtx;
 
-	Elevator *elevators[5];
+	Elevator *elevator;
 	Square *squares[5];
 	int elementsArraySize = 5;
 	int maxRounds = 4;
+	GLfloat elevatingSpeed = 0.0008f;
 
 	bool stopThreads;
 
@@ -31,7 +33,8 @@ public:
 	int init();
 	void simulationLoop();
 	void createElements();
-	void updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus);
+	void manageSquareThread(Square *s, Elevator *e, bool &stopThreadStatus);
+	void manageElevatorThread(Elevator *e, bool &stopThreadStatus);
 };
 
 #endif

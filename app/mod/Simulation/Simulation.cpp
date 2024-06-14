@@ -36,9 +36,11 @@ void Simulation::simulationLoop() {
 	stopThreads = false;
 
 	// Create threads to manage elements
+	std::thread elevatorThread = std::thread(&Simulation::manageElevatorThread, this, std::ref(elevator), std::ref(stopThreads));
+
 	std::thread allThreads[elementsArraySize];
 	for (int i = 0; i < elementsArraySize; i++) {
-		allThreads[i] = std::thread(&Simulation::updateSquareAndElevatorThread, this, std::ref(squares[i]), std::ref(elevators[i]), std::ref(stopThreads));
+		allThreads[i] = std::thread(&Simulation::manageSquareThread, this, std::ref(squares[i]), std::ref(elevator), std::ref(stopThreads));
 	}
 
 	// Main drawing/events loop
@@ -51,10 +53,10 @@ void Simulation::simulationLoop() {
 			if (squares[i] != nullptr) {
 				squares[i]->draw();
 			}
+		}
 
-			if (elevators[i] != nullptr) {
-				elevators[i]->draw();
-			}
+		if (elevator != nullptr) {
+			elevator->draw();
 		}
 
 		glfwSwapBuffers(window);
@@ -67,39 +69,61 @@ void Simulation::simulationLoop() {
 		allThreads[i].join();
 	}
 
+	elevatorThread.join();
+
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
 
 void Simulation::createElements() {
+	std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> dist(0.0f, 1.0f);
+
+	elevator = new Elevator(0.5f, 0.5f, 0.1f, elevatingSpeed, elevatingSpeed, 1.0f, 1.0f, 1.0f);
+
 	for (int i = 0; i < elementsArraySize; i++) {
-		elevators[i] = new Elevator(0.5f, 0.5f, 0.1f, 0.001f, 0.002f, 1.0f, 1.0f, 1.0f);
-		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), 0.6f, 0.2f, 1.0f);
+		GLfloat red = dist(gen);
+		GLfloat green = dist(gen);
+		GLfloat blue = dist(gen);
+
+		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), elevatingSpeed, red, green, blue);
 	}
 }
 
-void Simulation::updateSquareAndElevatorThread(Square *s, Elevator *e, bool &stopThreadStatus) {
+void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStatus) {
 	while (true) {
 		if (s == nullptr) {
 			return;
 		}
 
-		if (e == nullptr) {
+		if (stopThreadStatus || s->rounds == maxRounds) {
+			delete s;
 			return;
 		}
 
-		if (stopThreadStatus || s->rounds == maxRounds) {
-			delete s;
+		mtx.lock();
+		s->checkAndElevate(e->getTop(), e->getRunning());
+		mtx.unlock();
+
+		s->move();
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(1));
+	}
+}
+
+void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
+	while (true) {
+		if (stopThreadStatus) {
 			delete e;
 			return;
 		}
 
-		s->move();
-		e->move();
-
-		if (s->getX() >= e->getX() && s->getY() <= e->getY()) {
+		if (e->getTop()) {
 			e->run();
 		}
+
+		e->move();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}

@@ -19,8 +19,8 @@ GLfloat BaseObject::getY() {
 
 void BaseObject::draw() {
 	glPushMatrix();
-	glColor3fv(color);
 	glTranslatef(x, y, 0.0f);
+	glColor3fv(color);
 	glBegin(GL_QUADS);
 	glVertex2f(-size / 2, -size / 2);
 	glVertex2f(size / 2, -size / 2);
