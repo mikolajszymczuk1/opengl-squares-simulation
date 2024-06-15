@@ -4,6 +4,9 @@
 #include <thread>
 #include <mutex>
 #include <random>
+#include <vector>
+#include <memory>
+#include <algorithm>
 
 #include "../Board/Board.hpp"
 #include "../Elevator/Elevator.hpp"
@@ -21,20 +24,24 @@ private:
 	std::mutex mtx;
 
 	Elevator *elevator;
-	Square *squares[5];
-	int elementsArraySize = 5;
-	int maxRounds = 4;
+	std::vector<Square*> squares;
+	std::vector<std::thread> allThreads;
 	GLfloat elevatingSpeed = 0.0008f;
 
-	bool stopThreads;
+	int elementsCount = 5;
+	int maxRounds = 4;
+	bool stopThreads = false;
 
 public:
 	Simulation(GLint windowWidth, GLint windowHeight);
 	int init();
 	void simulationLoop();
 	void createElements();
+	Square* createSquare();
 	void manageSquareThread(Square *s, Elevator *e, bool &stopThreadStatus);
 	void manageElevatorThread(Elevator *e, bool &stopThreadStatus);
+	void stopAllThreads(std::thread &elevatorThread);
+	void clearAllElements();
 };
 
 #endif

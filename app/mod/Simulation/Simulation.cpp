@@ -33,14 +33,11 @@ int Simulation::init() {
 }
 
 void Simulation::simulationLoop() {
-	stopThreads = false;
-
 	// Create threads to manage elements
-	std::thread elevatorThread = std::thread(&Simulation::manageElevatorThread, this, std::ref(elevator), std::ref(stopThreads));
+	std::thread elevatorThread = std::thread(&Simulation::manageElevatorThread, this, elevator, std::ref(stopThreads));
 
-	std::thread allThreads[elementsArraySize];
-	for (int i = 0; i < elementsArraySize; i++) {
-		allThreads[i] = std::thread(&Simulation::manageSquareThread, this, std::ref(squares[i]), std::ref(elevator), std::ref(stopThreads));
+	for (size_t i = 0; i < squares.size(); i++) {
+		allThreads.emplace_back(&Simulation::manageSquareThread, this, squares[i], elevator, std::ref(stopThreads));
 	}
 
 	// Main drawing/events loop
@@ -49,7 +46,8 @@ void Simulation::simulationLoop() {
 
 		Board::drawTrack();
 
-		for (int i = 0; i < elementsArraySize; i++) {
+		std::lock_guard<std::mutex> lock(mtx);
+		for (size_t i = 0; i < squares.size(); i++) {
 			if (squares[i] != nullptr) {
 				squares[i]->draw();
 			}
@@ -63,32 +61,36 @@ void Simulation::simulationLoop() {
 		glfwPollEvents();
 	}
 
-	// Stop all threads
-	stopThreads = true;
-	for (int i = 0; i < elementsArraySize; i++) {
-		allThreads[i].join();
-	}
+	// Close threads
+	stopAllThreads(elevatorThread);
 
-	elevatorThread.join();
+	// Clear memory
+	clearAllElements();
 
+	// Close window
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
 
 void Simulation::createElements() {
-	std::random_device rd;
-  std::mt19937 gen(rd());
-  std::uniform_real_distribution<float> dist(0.0f, 1.0f);
-
 	elevator = new Elevator(0.5f, 0.5f, 0.1f, elevatingSpeed, elevatingSpeed, 1.0f, 1.0f, 1.0f);
 
-	for (int i = 0; i < elementsArraySize; i++) {
-		GLfloat red = dist(gen);
-		GLfloat green = dist(gen);
-		GLfloat blue = dist(gen);
-
-		squares[i] = new Square(-0.5f, 0.5f, 0.1f, 0.0002f * (i + 1), elevatingSpeed, red, green, blue);
+	for (int i = 0; i < elementsCount; i++) {
+		squares.push_back(createSquare());
 	}
+}
+
+Square* Simulation::createSquare() {
+	std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_real_distribution<float> colorDist(0.0f, 1.0f);
+	std::uniform_real_distribution<float> speedDist(0.0004f, 0.0008f);
+
+	GLfloat red = colorDist(gen);
+	GLfloat green = colorDist(gen);
+	GLfloat blue = colorDist(gen);
+
+	return new Square(-0.5f, 0.5f, 0.1f, speedDist(gen), elevatingSpeed, red, green, blue);
 }
 
 void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStatus) {
@@ -98,13 +100,27 @@ void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStat
 		}
 
 		if (stopThreadStatus || s->rounds == maxRounds) {
+			{
+				std::lock_guard<std::mutex> lock(mtx);
+				auto it = std::find(squares.begin(), squares.end(), s);
+				if (it != squares.end()) {
+						squares.erase(it);
+				}
+			}
+
 			delete s;
+
+			// Create new square object and thread for it
+			Square *newSquare = createSquare();
+			squares.push_back(newSquare);
+			allThreads.emplace_back(&Simulation::manageSquareThread, this, newSquare, elevator, std::ref(stopThreads));
 			return;
 		}
 
-		mtx.lock();
-		s->checkAndElevate(e->getTop(), e->getRunning());
-		mtx.unlock();
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			s->checkAndElevate(e->getTop(), e->getRunning());
+		}
 
 		s->move();
 
@@ -119,12 +135,42 @@ void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
 			return;
 		}
 
-		if (e->getTop()) {
-			e->run();
-		}
-
-		e->move();
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			if (e->getTop()) {
+					e->run();
+			}
+			e->move();
+    }
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
+}
+
+void Simulation::stopAllThreads(std::thread &elevatorThread) {
+	stopThreads = true;
+	for (auto& thread : allThreads) {
+		if (thread.joinable()) {
+			thread.join();
+		}
+	}
+
+	if (elevatorThread.joinable()) {
+    elevatorThread.join();
+  }
+}
+
+void Simulation::clearAllElements() {
+	{
+		std::lock_guard<std::mutex> lock(mtx);
+		for (auto& square : squares) {
+				delete square;
+		}
+		squares.clear();
+
+		delete elevator;
+  }
+
+	squares.clear();
+	allThreads.clear();
 }
