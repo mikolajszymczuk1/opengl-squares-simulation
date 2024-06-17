@@ -46,7 +46,6 @@ void Simulation::simulationLoop() {
 
 		Board::drawTrack();
 
-		std::lock_guard<std::mutex> lock(mtx);
 		for (size_t i = 0; i < squares.size(); i++) {
 			if (squares[i] != nullptr) {
 				squares[i]->draw();
@@ -100,12 +99,9 @@ void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStat
 		}
 
 		if (stopThreadStatus || s->rounds == maxRounds) {
-			{
-				std::lock_guard<std::mutex> lock(mtx);
-				auto it = std::find(squares.begin(), squares.end(), s);
-				if (it != squares.end()) {
-						squares.erase(it);
-				}
+			auto it = std::find(squares.begin(), squares.end(), s);
+			if (it != squares.end()) {
+					squares.erase(it);
 			}
 
 			delete s;
@@ -117,11 +113,7 @@ void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStat
 			return;
 		}
 
-		{
-			std::lock_guard<std::mutex> lock(mtx);
-			s->checkAndElevate(e->getTop(), e->getRunning());
-		}
-
+		s->checkAndElevate(e->getTop(), e->getRunning());
 		s->move();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -135,13 +127,11 @@ void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
 			return;
 		}
 
-		{
-			std::lock_guard<std::mutex> lock(mtx);
-			if (e->getTop()) {
-					e->run();
-			}
-			e->move();
-    }
+		if (e->getTop()) {
+				e->run();
+		}
+
+		e->move();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}
@@ -166,7 +156,6 @@ void Simulation::clearAllElements() {
 		for (auto& square : squares) {
 				delete square;
 		}
-		squares.clear();
 
 		delete elevator;
   }
