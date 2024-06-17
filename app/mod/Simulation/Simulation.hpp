@@ -41,6 +41,7 @@ public:
 	void manageElevatorThread(Elevator *e, bool &stopThreadStatus);
 	void stopAllThreads(std::thread &elevatorThread);
 	void clearAllElements();
+	static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 };
 
 #endif

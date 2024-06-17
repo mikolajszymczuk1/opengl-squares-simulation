@@ -10,6 +10,8 @@ int Simulation::init() {
 
 	window = glfwCreateWindow(width, height, "Open GL Squares Simulation", NULL, NULL);
 
+	glfwSetKeyCallback(window, Simulation::keyCallback);
+
 	if (!window) {
 		printf("GLFW window creation failed\n");
 		glfwTerminate();
@@ -162,4 +164,10 @@ void Simulation::clearAllElements() {
 
 	squares.clear();
 	allThreads.clear();
+}
+
+void Simulation::keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+	if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
+		glfwSetWindowShouldClose(window, GLFW_TRUE);
+	}
 }
