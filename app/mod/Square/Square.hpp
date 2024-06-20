@@ -1,5 +1,8 @@
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 #include "../Base/BaseObject.hpp"
 
@@ -13,6 +16,8 @@ private:
 	GLfloat eleSpeed;
 	bool isElevating;
 	bool canElevate;
+	std::condition_variable cv;
+	std::mutex carMtx;
 
 public:
 	int rounds;

@@ -46,16 +46,17 @@ void Simulation::simulationLoop() {
 	while (!glfwWindowShouldClose(window)) {
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		// Draw elements
 		Board::drawTrack();
-
-		for (size_t i = 0; i < squares.size(); i++) {
-			if (squares[i] != nullptr) {
-				squares[i]->draw();
-			}
+		for (const auto &square : squares) {
+			if (square != nullptr) square->draw();
 		}
 
-		if (elevator != nullptr) {
-			elevator->draw();
+		if (elevator != nullptr) elevator->draw();
+
+		// Wake up specific threads
+		for (const auto &square : squares) {
+			square->checkAndElevate(elevator->getTop(), elevator->getRunning());
 		}
 
 		glfwSwapBuffers(window);
@@ -75,7 +76,6 @@ void Simulation::simulationLoop() {
 
 void Simulation::createElements() {
 	elevator = new Elevator(0.5f, 0.5f, 0.1f, elevatingSpeed, elevatingSpeed, 1.0f, 1.0f, 1.0f);
-
 	for (int i = 0; i < elementsCount; i++) {
 		squares.push_back(createSquare());
 	}
@@ -85,7 +85,7 @@ Square* Simulation::createSquare() {
 	std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_real_distribution<float> colorDist(0.0f, 1.0f);
-	std::uniform_real_distribution<float> speedDist(0.0004f, 0.0008f);
+	std::uniform_real_distribution<float> speedDist(0.0002f, 0.0016f);
 
 	GLfloat red = colorDist(gen);
 	GLfloat green = colorDist(gen);
@@ -96,16 +96,10 @@ Square* Simulation::createSquare() {
 
 void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStatus) {
 	while (true) {
-		if (s == nullptr) {
-			return;
-		}
-
+		if (s == nullptr) return;
 		if (stopThreadStatus || s->rounds == maxRounds) {
 			auto it = std::find(squares.begin(), squares.end(), s);
-			if (it != squares.end()) {
-					squares.erase(it);
-			}
-
+			if (it != squares.end()) squares.erase(it);
 			delete s;
 
 			// Create new square object and thread for it
@@ -129,10 +123,7 @@ void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
 			return;
 		}
 
-		if (e->getTop()) {
-				e->run();
-		}
-
+		if (e->getTop()) e->run();
 		e->move();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -142,14 +133,10 @@ void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
 void Simulation::stopAllThreads(std::thread &elevatorThread) {
 	stopThreads = true;
 	for (auto& thread : allThreads) {
-		if (thread.joinable()) {
-			thread.join();
-		}
+		if (thread.joinable()) thread.join();
 	}
 
-	if (elevatorThread.joinable()) {
-    elevatorThread.join();
-  }
+	if (elevatorThread.joinable()) elevatorThread.join();
 }
 
 void Simulation::clearAllElements() {
