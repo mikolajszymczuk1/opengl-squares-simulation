@@ -47,16 +47,14 @@ void Simulation::simulationLoop() {
 		glClear(GL_COLOR_BUFFER_BIT);
 
 		// Draw elements
-		Board::drawTrack();
-		for (const auto &square : squares) {
-			if (square != nullptr) square->draw();
-		}
+		{
+			std::lock_guard<std::mutex> lock(mtx);
+			Board::drawTrack();
+			for (const auto &square : squares) {
+				if (square != nullptr) square->draw();
+			}
 
-		if (elevator != nullptr) elevator->draw();
-
-		// Wake up specific threads
-		for (const auto &square : squares) {
-			square->checkAndElevate(elevator->getTop(), elevator->getRunning());
+			if (elevator != nullptr) elevator->draw();
 		}
 
 		glfwSwapBuffers(window);
@@ -109,7 +107,6 @@ void Simulation::manageSquareThread(Square *s, Elevator *e, bool &stopThreadStat
 			return;
 		}
 
-		s->checkAndElevate(e->getTop(), e->getRunning());
 		s->move();
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -125,6 +122,11 @@ void Simulation::manageElevatorThread(Elevator *e, bool &stopThreadStatus) {
 
 		if (e->getTop()) e->run();
 		e->move();
+
+		// Wake up specific threads
+		for (const auto &square : squares) {
+			square->checkAndElevate(elevator->getTop(), elevator->getRunning());
+		}
 
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 	}

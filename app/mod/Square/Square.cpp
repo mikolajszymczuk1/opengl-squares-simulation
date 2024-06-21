@@ -61,7 +61,7 @@ void Square::move() {
 }
 
 void Square::checkAndElevate(bool elevatorTopStatus, bool elevatorRunningStatus) {
-	if (corner == 1 && elevatorTopStatus && !elevatorRunningStatus) {
+	if (corner == 1 && elevatorTopStatus) {
 		std::lock_guard<std::mutex> lck(carMtx);
 		canElevate = true;
 		cv.notify_all();
